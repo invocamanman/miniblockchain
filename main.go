@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 //"encoding/hex"
 
@@ -15,9 +18,14 @@ func main() {
 	const amount = uint64(1000)
 	transaction := newTx(addressA, addressB, amount)
 
+	fmt.Println("test ", transaction)
+
 	fmt.Println("transactionByte ", transaction)
 	transactionByte := transaction.toBytes()
 	fmt.Println("transactionByte ", transactionByte)
+
+	transactionByte2, errm := json.Marshal(&transaction)
+	fmt.Println("marshal ", transactionByte2, errm)
 
 	err := db.Put(transaction.Hash[:], transactionByte, nil)
 	if err != nil {

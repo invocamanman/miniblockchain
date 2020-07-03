@@ -26,7 +26,6 @@ func generateRandomAddress() common.Address {
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address
-
 	// account := common.HexToAddress(address)string-->hex
 	// fmt.Println(account)
 	// string(bytes) work!:D
