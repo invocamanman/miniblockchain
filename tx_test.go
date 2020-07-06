@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -17,27 +16,41 @@ func TestNewTx(t *testing.T) {
 	assert.Equal(t, addressA, Tx.From)
 	assert.Equal(t, addressB, Tx.To)
 	assert.Equal(t, amount, Tx.Amount)
-	assert.Equal(t, "0x7a2f1fdf8ca41d2b711bb910edc277efaf757dfde6256a7d87149b01df9e84e2", common.Hash(Tx.Hash).Hex())
-	assert.Equal(t, "7b2246726f6d223a22307861303537313536393333343531376437376531613162303363623964333435333132656338323735222c22546f223a22307839666536646238343439383061633530646339393564636137363739363366313331373838326266222c22416d6f756e74223a313030302c2248617368223a5b3132322c34372c33312c3232332c3134302c3136342c32392c34332c3131332c32372c3138352c31362c3233372c3139342c3131392c3233392c3137352c3131372c3132352c3235332c3233302c33372c3130362c3132352c3133352c32302c3135352c312c3232332c3135382c3133322c3232365d7d", Tx.hex())
+	assert.Equal(t, "0x0093bec823ce02d25563d72695d53ce2f31a569902717d95f228b34e09bf28a7", common.Hash(Tx.Hash).Hex())
+	assert.Equal(t, "a0571569334517d77e1a1b03cb9d345312ec82759fe6db844980ac50dc995dca767963f1317882bfe8030000000000000093bec823ce02d25563d72695d53ce2f31a569902717d95f228b34e09bf28a7", Tx.hex())
 }
 
-func TestMarshalTx(t *testing.T) {
+func TesttoBytesFromBytesTx(t *testing.T) {
 	addressA := common.HexToAddress("0xa0571569334517d77e1a1B03Cb9D345312eC8275")
 	addressB := common.HexToAddress("0x9FE6Db844980ac50dc995DCA767963f1317882bF")
 	const amount = uint64(1000)
 	Tx := newTx(addressA, addressB, amount)
 
-	b, err := json.Marshal(&Tx)
+	b, err := Tx.toBytes()
 
 	fmt.Println("marshal:", string(b))
 
 	Tx2 := tx{}
-	err2 := json.Unmarshal(b, &Tx2)
-
-	assert.Equal(t, nil, string(b))
+	err2 := Tx2.fromBytes(b)
 
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, err2)
-	//assert.Equal(t, "0x7a2f1fdf8ca41d2b711bb910edc277efaf757dfde6256a7d87149b01df9e84e2", string(b))
 	assert.Equal(t, Tx, Tx2)
+}
+
+func TestSignTx(t *testing.T) {
+	privateA := generatePrivateKey()
+	pubA := publicFromPrivateKey(privateA)
+	addressA := addressFromPrivateKey(privateA)
+	addressB := common.HexToAddress("0x9FE6Db844980ac50dc995DCA767963f1317882bF")
+	const amount = uint64(1000)
+
+	Tx := newTx(addressA, addressB, amount)
+	err := Tx.signTx(privateA)
+	verify := Tx.verifyTx(pubA)
+
+	assert.Equal(t, nil, err)
+	assert.Equal(t, true, verify)
+	assert.Equal(t, true, Tx.Hash[0] == byte(0))
+
 }

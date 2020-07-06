@@ -9,3 +9,5 @@ func openDb() *leveldb.DB {
 	}
 	return db
 }
+
+//func saveTx()

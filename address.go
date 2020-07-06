@@ -30,3 +30,31 @@ func generateRandomAddress() common.Address {
 	// fmt.Println(account)
 	// string(bytes) work!:D
 }
+
+func generatePrivateKey() *ecdsa.PrivateKey {
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return privateKey
+}
+
+func publicFromPrivateKey(privateKey *ecdsa.PrivateKey) []byte {
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+	return publicKeyBytes
+}
+
+func addressFromPrivateKey(privateKey *ecdsa.PrivateKey) common.Address {
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+	return address
+}
