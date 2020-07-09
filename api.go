@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-// type APIServer struct {
+// type aPIServer struct {
 // 	Router *gin.Engine
 
 // 	B *leveldb.DB
@@ -21,9 +22,10 @@ var db *leveldb.DB
 
 var m map[string]uint64
 
-func server(database *leveldb.DB) {
+func server() {
 	m = make(map[string]uint64)
-	db = database
+	db := openDb()
+	defer db.Close()
 	router = gin.Default()
 	initializeRoutes()
 	router.Run(":8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
@@ -44,32 +46,33 @@ func handleGetTx(c *gin.Context) {
 }
 
 func handleGetBalance(c *gin.Context) {
-	addr := c.Param("addr")
-	c.String(http.StatusOK, "hi %s", addr)
+	//addr2 := c.Param("addr")
+	addr := c.Query("addr")
+
+	//fmt.Println("addr", addr, "addr2", addr2)
+	coins := m[addr]
+	c.JSON(http.StatusOK, gin.H{"coins": coins})
 }
 
 func handlePostMint(c *gin.Context) {
 
-	// message := c.PostForm("message")
-	// nick := c.DefaultPostForm("nick", "anonymous")
+	// coins, err := strconv.ParseUint(c.PostForm("coins"), 10, 64)
+	// addr := c.PostForm("addr")
 
-	var json tx
+	//mt.Println("coins", coins, "addr", addr, "err,", err)
+
+	var json Params
 	if err := c.ShouldBindJSON(&json); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// if json.User != "manu" || json.Password != "123" {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
-	// 	return
-	// }
+	m[json.Addr] += json.Coins
+	c.JSON(http.StatusOK, gin.H{
+		"coins": m[json.Addr],
+		"addr":  json.Addr,
+	})
 
-	//c.BindJSON(&u)
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"user": u.Username,
-	// 	"pass": u.Password,
-	// })
-	// }
 }
 
 func handlePostTx(c *gin.Context) {
@@ -77,23 +80,38 @@ func handlePostTx(c *gin.Context) {
 	// message := c.PostForm("message")
 	// nick := c.DefaultPostForm("nick", "anonymous")
 
-	var json tx
-	if err := c.ShouldBindJSON(&json); err != nil {
+	var transactionSend sendTx
+	if err := c.ShouldBindJSON(&transactionSend); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// if json.User != "manu" || json.Password != "123" {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
-	// 	return
-	// }
+	verify := transactionSend.Transaction.verifyTx(transactionSend.PubKey)
+	if verify == false {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	c.Status(http.StatusOK)
+	addressFrom := transactionSend.Transaction.From.Hex()
+	coinsFrom := m[addressFrom]
+	amount := transactionSend.Transaction.Amount
 
-	//c.BindJSON(&u)
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"user": u.Username,
-	// 	"pass": u.Password,
-	// })
-	// }
+	if coinsFrom < amount {
+		c.Status(http.StatusPaymentRequired)
+		return
+	}
+
+	addressTo := transactionSend.Transaction.To.Hex()
+	m[addressFrom] -= amount
+	m[addressTo] += amount
+	transactionByte, _ := transactionSend.Transaction.toBytes()
+	err := db.Put(transactionSend.Transaction.Hash[:], transactionByte, nil)
+	if err != nil {
+		fmt.Println("error? ", err)
+	}
+	c.Status(http.StatusOK)
+	return
+
 }
 
 // func handleOptions(c *gin.Context) {

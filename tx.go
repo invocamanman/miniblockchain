@@ -88,3 +88,13 @@ func newTx(from common.Address, to common.Address, amount uint64) tx {
 	transaction := tx{From: from, To: to, Amount: amount, Hash: hashKek, Timestamp: time, Nonce: i}
 	return transaction
 }
+
+type Params struct {
+	Coins uint64 `json:"coins,omitempty"  binding:"required" url:"coins,omitempty"`
+	Addr  string `json:"addr,omitempty"  binding:"required" url:"addr,omitempty"`
+}
+
+type sendTx struct {
+	Transaction tx
+	PubKey      []byte
+}
